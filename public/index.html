@@ -12,7 +12,7 @@
   <form id="reviewForm">
     <h2>Submit a Donor Review</h2>
     <input type="text" id="donorName" placeholder="Donor Name" required />
-    <input type="text" id="ngoName" placeholder="NGO Name" required /> <!-- New NGO Name Field -->
+    <input type="text" id="ngoName" placeholder="NGO Name" required />
     <textarea id="reviewMessage" placeholder="Message" required></textarea>
     <button type="submit">Submit Donor Review</button>
   </form>
@@ -57,6 +57,7 @@
       });
 
       if (res.ok) alert('Donor review submitted!');
+      else console.error('Error submitting donor review', await res.json());
     });
 
     // Response Submission
@@ -73,6 +74,7 @@
       });
 
       if (res.ok) alert('Response submitted!');
+      else console.error('Error submitting response', await res.json());
     });
 
     // Website Review Submission
@@ -89,6 +91,7 @@
       });
 
       if (res.ok) alert('Website review submitted!');
+      else console.error('Error submitting website review', await res.json());
     });
 
     // Fetch and display unapproved reviews for Admin Moderation
@@ -97,6 +100,11 @@
       const data = await res.json();
       const reviewsDiv = document.getElementById('unapprovedReviews');
       reviewsDiv.innerHTML = '';
+
+      if (!data.reviews || data.reviews.length === 0) {
+        reviewsDiv.innerHTML = '<p>No unapproved reviews at the moment.</p>';
+        return;
+      }
 
       data.reviews.forEach(review => {
         const reviewDiv = document.createElement('div');
@@ -125,15 +133,21 @@
     // Approve a review
     async function approveReview(id, type = 'donor') {
       const url = type === 'donor' ? `/api/admin/reviews/${id}/approve` : `/api/admin/website-reviews/${id}/approve`;
-      await fetch(url, { method: 'PATCH' });
-      fetchUnapprovedReviews();
+      const res = await fetch(url, { method: 'PATCH' });
+      if (res.ok) {
+        alert('Review approved!');
+        fetchUnapprovedReviews();
+      } else console.error('Error approving review', await res.json());
     }
 
     // Reject a review
     async function rejectReview(id, type = 'donor') {
       const url = type === 'donor' ? `/api/admin/reviews/${id}/reject` : `/api/admin/website-reviews/${id}/reject`;
-      await fetch(url, { method: 'DELETE' });
-      fetchUnapprovedReviews();
+      const res = await fetch(url, { method: 'DELETE' });
+      if (res.ok) {
+        alert('Review rejected!');
+        fetchUnapprovedReviews();
+      } else console.error('Error rejecting review', await res.json());
     }
 
     // Load unapproved reviews on page load
