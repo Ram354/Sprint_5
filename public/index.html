@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NGO Feedback System and Admin Moderation</title>
+</head>
+<body>
+  <h1>NGO Feedback System</h1>
+  
+  <!-- Donor Review Form -->
+  <form id="reviewForm">
+    <h2>Submit a Donor Review</h2>
+    <input type="text" id="donorName" placeholder="Donor Name" required />
+    <input type="text" id="ngoName" placeholder="NGO Name" required /> <!-- New NGO Name Field -->
+    <textarea id="reviewMessage" placeholder="Message" required></textarea>
+    <button type="submit">Submit Donor Review</button>
+  </form>
+  
+  <!-- Response Form -->
+  <form id="responseForm">
+    <h2>Respond to a Review</h2>
+    <input type="text" id="reviewId" placeholder="Review ID" required />
+    <input type="text" id="ngoNameResponse" placeholder="NGO Name" required />
+    <textarea id="responseMessage" placeholder="Message" required></textarea>
+    <button type="submit">Submit Response</button>
+  </form>
+
+  <!-- Website Review Form -->
+  <form id="websiteReviewForm">
+    <h2>Submit a Website Review</h2>
+    <input type="text" id="reviewerName" placeholder="Reviewer Name" required />
+    <select id="reviewerType" required>
+      <option value="">Select Reviewer Type</option>
+      <option value="User">User</option>
+      <option value="NGO">NGO</option>
+    </select>
+    <textarea id="websiteReviewMessage" placeholder="Message" required></textarea>
+    <button type="submit">Submit Website Review</button>
+  </form>
+
+  <h1>Admin Moderation Panel</h1>
+  <div id="unapprovedReviews"></div>
+
+  <script>
+    // Donor Review Submission
+    document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const donorName = document.getElementById('donorName').value;
+      const ngoName = document.getElementById('ngoName').value;
+      const message = document.getElementById('reviewMessage').value;
+
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ donorName, ngoName, message })
+      });
+
+      if (res.ok) alert('Donor review submitted!');
+    });
+
+    // Response Submission
+    document.getElementById('responseForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const reviewId = document.getElementById('reviewId').value;
+      const ngoName = document.getElementById('ngoNameResponse').value;
+      const message = document.getElementById('responseMessage').value;
+
+      const res = await fetch('/api/responses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reviewId, ngoName, message })
+      });
+
+      if (res.ok) alert('Response submitted!');
+    });
+
+    // Website Review Submission
+    document.getElementById('websiteReviewForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const reviewerName = document.getElementById('reviewerName').value;
+      const reviewerType = document.getElementById('reviewerType').value;
+      const message = document.getElementById('websiteReviewMessage').value;
+
+      const res = await fetch('/api/website-reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reviewerName, reviewerType, message })
+      });
+
+      if (res.ok) alert('Website review submitted!');
+    });
+
+    // Fetch and display unapproved reviews for Admin Moderation
+    async function fetchUnapprovedReviews() {
+      const res = await fetch('/api/admin/reviews/unapproved');
+      const data = await res.json();
+      const reviewsDiv = document.getElementById('unapprovedReviews');
+      reviewsDiv.innerHTML = '';
+
+      data.reviews.forEach(review => {
+        const reviewDiv = document.createElement('div');
+        reviewDiv.innerHTML = `
+          <h3>Donor Review for ${review.ngoName}</h3>
+          <p><strong>Donor:</strong> ${review.donorName}</p>
+          <p><strong>Message:</strong> ${review.message}</p>
+          <button onclick="approveReview('${review._id}')">Approve</button>
+          <button onclick="rejectReview('${review._id}')">Reject</button>
+        `;
+        reviewsDiv.appendChild(reviewDiv);
+      });
+
+      data.websiteReviews.forEach(review => {
+        const reviewDiv = document.createElement('div');
+        reviewDiv.innerHTML = `
+          <h3>Website Review by ${review.reviewerName} (${review.reviewerType})</h3>
+          <p><strong>Message:</strong> ${review.message}</p>
+          <button onclick="approveReview('${review._id}', 'website')">Approve</button>
+          <button onclick="rejectReview('${review._id}', 'website')">Reject</button>
+        `;
+        reviewsDiv.appendChild(reviewDiv);
+      });
+    }
+
+    // Approve a review
+    async function approveReview(id, type = 'donor') {
+      const url = type === 'donor' ? `/api/admin/reviews/${id}/approve` : `/api/admin/website-reviews/${id}/approve`;
+      await fetch(url, { method: 'PATCH' });
+      fetchUnapprovedReviews();
+    }
+
+    // Reject a review
+    async function rejectReview(id, type = 'donor') {
+      const url = type === 'donor' ? `/api/admin/reviews/${id}/reject` : `/api/admin/website-reviews/${id}/reject`;
+      await fetch(url, { method: 'DELETE' });
+      fetchUnapprovedReviews();
+    }
+
+    // Load unapproved reviews on page load
+    fetchUnapprovedReviews();
+  </script>
+</body>
+</html>
